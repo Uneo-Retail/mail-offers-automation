@@ -31,11 +31,13 @@ export function preferMobile(numbers: string[]): string | null {
   if (scored.length === 0) return null;
 
   const isMobile = (d: string): boolean => {
-    // formats : 06xxxxxxxx / 07xxxxxxxx ; +336 / +337 ; 00336 / 00337
-    const m = d.replace(/^0+/, "");
-    if (/^33[67]/.test(m)) return true;
-    if (/^[67]\d{8}$/.test(d)) return true;
-    return false;
+    // ramener à la forme nationale sans préfixe pays ni zéro de tête
+    let m = d;
+    if (m.startsWith("0033")) m = m.slice(4);
+    else if (m.startsWith("33")) m = m.slice(2);
+    m = m.replace(/^0+/, "");
+    // mobile FR = 6xxxxxxxx / 7xxxxxxxx (9 chiffres après normalisation)
+    return /^[67]\d{8}$/.test(m);
   };
 
   const mobile = scored.find((x) => isMobile(x.d));
@@ -65,6 +67,12 @@ export function parseAmount(input: string | number | null | undefined): number |
   } else if (s.includes(",")) {
     // virgule = décimale FR si elle précède 1-2 chiffres en fin, sinon milliers
     s = /,\d{1,2}$/.test(s) ? s.replace(",", ".") : s.replace(/,/g, "");
+  } else if (s.includes(".")) {
+    // point seul : séparateur de milliers (334.900) si groupes de 3, sinon décimale
+    if (/^\d{1,3}(\.\d{3})+$/.test(s)) {
+      s = s.replace(/\./g, "");
+    }
+    // sinon (12.5, 334.50) : on garde le point comme décimale
   }
   const n = Number(s);
   return Number.isFinite(n) ? n : null;

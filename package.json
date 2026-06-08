@@ -11,8 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import tsx --test tests/**/*.test.ts",
-    "test:extract": "tsx tests/run-extract.ts",
-    "dev:poll": "tsx scripts/run-poll.ts"
+    "test:fixtures": "tsx tests/run-fixtures.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -25,7 +24,9 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/mailparser": "^3.4.6",
     "@types/node": "^20.17.0",
+    "mailparser": "^3.9.9",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }

@@ -58,8 +58,38 @@ Le schéma d'extraction du brief (§6.2) modélise **un seul `centre` + N `locau
 
 ## Tests
 
-`npm test` couvre la partie déterministe (extraction HTML/xlsx, tri & matching des pièces jointes, normalisation tél/montants, garde-fou, schémas zod). La validation IA de bout en bout (Zadig → 7 locaux, etc., cf. brief §11) requiert les fixtures réelles + une clé Anthropic ; brancher les `.eml` réels dans `tests/fixtures/` puis utiliser `POST /api/process` ou un runner local.
 ```
-npm run typecheck   # vérifie la compilation
-npm test            # tests unitaires déterministes
+npm run typecheck     # vérifie la compilation
+npm test              # tests unitaires déterministes (sans credentials)
+npm run test:fixtures # runner de validation sur mails réels (classify + extract)
 ```
+
+`npm test` couvre la partie déterministe (extraction HTML/xlsx, tri & matching des pièces jointes, normalisation tél/montants, garde-fou, amorçage/troncature, schémas zod, parseur `.eml`, comparateur).
+
+### Runner de validation IA — `npm run test:fixtures`
+
+Confronte le cœur IA (classify + extract) à de vrais mails **avant** tout déploiement, et mesure l'écart aux sorties attendues. N'appelle **ni Notion, ni Azure, ni Graph** : il valide la compréhension, pas l'écriture. C'est le test anti-« crash test » — on n'a pas vocation à déployer tant qu'il n'est pas vert sur les cas de référence (et **zéro faux positif** sur les fixtures de bruit).
+
+- Requiert `ANTHROPIC_API_KEY` dans l'environnement pour la partie IA. **Sans clé**, seule l'extraction déterministe s'exécute et la partie IA est SKIP (pas de plantage).
+- Code de sortie ≠ 0 si un cas échoue (utilisable en CI).
+
+**Format des fixtures** — un sous-dossier par cas dans `tests/fixtures/<cas>/` :
+- `expected.json` (golden, requis) ;
+- le mail, au choix : `mail.eml` (MIME brut, le plus fidèle) **ou** `mail.json` (objet `IncomingMail` partiel : `subject`, `from`, `bodyText`/`bodyHtml`, et `attachments: [{ name, contentType, file }]` pointant vers des fichiers joints du dossier).
+
+**Format `expected.json`** (validation partielle : seuls les champs présents sont vérifiés) :
+```jsonc
+{
+  "route": "offre",                 // attendu de la classification
+  "type_offre": "cession",
+  "nb_locaux": 7,
+  "centre_present": false,
+  "broker": { "societe": "Marcle Immobilier",
+              "contact": { "email": "...", "telephone": "0609501861" } }, // tél comparé en chiffres
+  "locaux_all": { "loyer_annuel_fixe": null },  // contrainte sur CHAQUE local (ici : pas de prix)
+  "locaux": [ { "match": "Annecy", "surface_rdc": 86, "loyer_annuel_fixe": 33224 } ] // match = sous-chaîne nom/adresse
+}
+```
+`null` attendu ⇒ le champ obtenu doit être absent/null. Les montants sont comparés en numérique.
+
+Fixtures fournies : 3 cas de **bruit** (facture, newsletter piège, relance) avec `{ "route": "bruit" }`, plus les golden **Zadig** et **Terranae** (brief §11) — déposer leurs `mail.eml` réels (ignorés par git pour confidentialité des baux) pour exécuter la partie IA.

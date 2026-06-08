@@ -1,0 +1,32 @@
+{
+  "name": "mail-offers-automation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Automatisation : détection & centralisation d'offres immobilières commerciales (Outlook → Claude → Notion)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test tests/**/*.test.ts",
+    "test:extract": "tsx tests/run-extract.ts",
+    "dev:poll": "tsx scripts/run-poll.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@azure/storage-blob": "^12.27.0",
+    "@notionhq/client": "^2.3.0",
+    "@supabase/supabase-js": "^2.49.0",
+    "node-html-parser": "^7.0.1",
+    "pdfjs-dist": "^4.10.38",
+    "xlsx": "^0.18.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

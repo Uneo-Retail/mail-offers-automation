@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
+.vercel
+*.log
+tests/fixtures/**/*.pdf
+tests/fixtures/**/*.xlsx
+tests/fixtures/**/*.eml
+.DS_Store

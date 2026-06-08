@@ -72,6 +72,30 @@ export async function deltaMessages(deltaLink?: string | null): Promise<DeltaRes
   return { messageIds, nextDeltaLink };
 }
 
+/**
+ * Amorçage : parcourt tout le delta de l'inbox SANS collecter de message, et
+ * renvoie le `@odata.deltaLink` final. Sert à poser une « ligne de départ
+ * maintenant » : aucun mail historique n'est traité, seuls les mails reçus
+ * après l'amorçage le seront aux runs suivants.
+ */
+export async function primeDeltaLink(): Promise<string> {
+  let url = `${mailboxPath()}/mailFolders/inbox/messages/delta?$select=${SELECT}`;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const res = await graphFetch(url);
+    if (!res.ok) throw new Error(`prime delta error ${res.status}: ${await res.text()}`);
+    const json = (await res.json()) as {
+      "@odata.nextLink"?: string;
+      "@odata.deltaLink"?: string;
+    };
+    if (json["@odata.nextLink"]) {
+      url = json["@odata.nextLink"];
+      continue;
+    }
+    return json["@odata.deltaLink"] ?? "";
+  }
+}
+
 export async function getMessage(messageId: string): Promise<IncomingMail> {
   const res = await graphFetch(
     `${mailboxPath()}/messages/${messageId}?$select=${SELECT.replace("bodyPreview", "bodyPreview,body")}`

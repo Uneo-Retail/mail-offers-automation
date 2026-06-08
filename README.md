@@ -35,6 +35,13 @@ api/poll.ts  (cron */10)
 
 Endpoints : `GET /api/health` (ping), `GET /api/poll` (cron), `POST /api/process { messageId }` (replay debug).
 
+### Amorçage delta (important au 1er run)
+
+Le **tout premier** appel à `/api/poll` sur une boîte non amorcée **ne traite aucun mail** : il parcourt le delta jusqu'au `@odata.deltaLink` final et le persiste (réponse `{ "primed": true, "processed": 0 }`). C'est une « ligne de départ maintenant » — sans ça, le premier cron traiterait tout l'historique de l'inbox (coût IA massif + base Notion polluée). Les runs suivants ne traitent que les mails reçus **après** l'amorçage.
+
+- `FORCE_BACKFILL=true` : force le traitement de ce que renvoie le delta dès le 1er run (rattrapage volontaire de l'historique). Absent par défaut → jamais de backfill.
+- `MAX_BATCH` (défaut 40) : borne dure du nombre de mails traités par exécution. Au-delà, seuls les plus anciens sont traités et le deltaLink **n'avance pas** — le reste est drainé aux crons suivants (idempotent via `processed_messages`).
+
 ## Décisions « À VALIDER » — défauts appliqués
 
 Conformément au brief, les défauts sont appliqués et **signalés ici** (à confirmer côté usage Matthieu) :

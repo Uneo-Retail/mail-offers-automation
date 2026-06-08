@@ -107,3 +107,9 @@ export const offerGranularity = (): OfferGranularity =>
   opt("OFFER_GRANULARITY", "lot") === "local" ? "local" : "lot";
 
 export const cronSecret = (): string => opt("CRON_SECRET");
+
+/** Borne dure du nombre de mails traités par exécution de cron. */
+export const maxBatch = (): number => optNum("MAX_BATCH", 40);
+
+/** Autoriser volontairement le traitement de l'historique au 1er run (jamais par défaut). */
+export const forceBackfill = (): boolean => opt("FORCE_BACKFILL").toLowerCase() === "true";

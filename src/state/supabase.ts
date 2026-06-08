@@ -16,6 +16,11 @@ function db(): SupabaseClient {
   return client;
 }
 
+/** Injection de client (tests uniquement). */
+export function _setClient(c: SupabaseClient | null): void {
+  client = c;
+}
+
 const DELTA_KEY = "inbox_delta";
 
 export async function getDeltaLink(): Promise<string | null> {
@@ -26,6 +31,11 @@ export async function getDeltaLink(): Promise<string | null> {
     .maybeSingle();
   if (error) throw error;
   return data?.delta_link ?? null;
+}
+
+/** Vrai si un deltaLink existe déjà = l'inbox a été amorcée. */
+export async function isPrimed(): Promise<boolean> {
+  return (await getDeltaLink()) !== null;
 }
 
 export async function setDeltaLink(deltaLink: string): Promise<void> {

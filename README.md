@@ -52,9 +52,15 @@ Conformément au brief, les défauts sont appliqués et **signalés ici** (à co
 
 Autres garde-fous : on n'écrit **que** les propriétés existantes et inscriptibles (les formules/rollups/champs internes sont ignorés automatiquement par `PropsBuilder`).
 
-## Limitation connue à arbitrer — plaquette multi-centres (Terranae)
+## Plaquette dense (multi-centres type Terranae) — signalée, pas extraite en masse
 
-Le schéma d'extraction du brief (§6.2) modélise **un seul `centre` + N `locaux`**. Une plaquette de portefeuille type Terranae (≈50 centres dans un PDF de 141 pages) ne rentre pas dans un seul appel/objet. Le code traite fidèlement le cas « 1 centre + locaux » ; le cas **multi-centres** nécessite une étape supplémentaire (découpage du PDF par centre, ou extension du schéma vers `centres[]`) — à arbitrer avant de lancer Terranae en production. Signalé, non décidé silencieusement.
+Décision produit : on ne tente PAS l'extraction exhaustive d'une grosse plaquette de portefeuille (≈50 centres / 141 pages). L'IA tenterait de tout extraire et produirait un résultat long, partiel et peu fiable. Comportement retenu :
+
+- détection « plaquette dense » = `route = faible_completude` **ET** (plus de `DENSE_BROCHURE_MAX_CENTERS` centres distincts **OU** PDF de plus de `DENSE_BROCHURE_MAX_PAGES` pages), ou le modèle pose lui-même `dense_brochure=true` (mode signalement) ;
+- aucune création en masse de Magasins/Emplacements : on crée une **seule** page Offre « à traiter manuellement » (État « À étudier ») avec en Notes un court résumé + le lien Azure vers le PDF ;
+- notification dédiée à soi-même : « Document dense reçu : plaquette de portefeuille (~N centres). Traitement automatique non effectué… À consulter manuellement : `<lien PDF>` ».
+
+Le garde-fou ne s'applique **qu'aux** `faible_completude` : les offres normales (Zadig, Paris IX, Villeneuve) ne sont jamais concernées. Seuils : `DENSE_BROCHURE_MAX_CENTERS` (défaut 5), `DENSE_BROCHURE_MAX_PAGES` (défaut 30).
 
 ## Tests
 

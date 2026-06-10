@@ -58,6 +58,8 @@ BROKER (société, PAS une personne) :
 - societe_url : l'URL si présente.
 - contact : la personne. nom_complet, email, telephone (PRÉFÉRER le mobile 06/07 au fixe/standard 01-05 si plusieurs numéros), role, adresse_postale. source = "expediteur" (offre simple) ou "document" (contact dédié dans une plaquette).
 
+PLAQUETTE DENSE (mode signalement) : si le document est une plaquette de portefeuille décrivant un GRAND nombre de centres/biens distincts (plus de 5 centres, ou catalogue de plusieurs dizaines de pages), NE PAS tenter d'extraire tous les centres (résultat long et peu fiable). Dans ce cas : mettre dense_brochure=true et nb_centres_estime=<estimation du nombre de centres>, renseigner broker (émetteur/gestionnaire + contact si évident en 1re page), et laisser locaux VIDE (au plus 1-2 exemples). Pour une offre normale (un ou quelques biens), dense_brochure=false ou absent et extraire normalement.
+
 CENTRE (rempli seulement si l'offre concerne un centre commercial / une plaquette de centres) :
 - nom, adresse_complete, type_emplacement, locomotive (enseigne locomotive), superficie_m2 (GLA), surface_hypermarche_m2, flux_visiteurs (fréquentation), description, total_magasins (« dont X boutiques »). Sinon, centre = null.
 

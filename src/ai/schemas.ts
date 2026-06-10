@@ -116,6 +116,9 @@ export const extractionSchema = z.object({
   centre: centreSchema,
   broker: brokerSchema,
   locaux: z.array(localSchema),
+  /** Mode signalement : plaquette de portefeuille trop dense pour une extraction fiable. */
+  dense_brochure: z.boolean().nullable().optional(),
+  nb_centres_estime: z.number().nullable().optional(),
 });
 export type Extraction = z.infer<typeof extractionSchema>;
 
@@ -204,6 +207,15 @@ export const extractTool = {
           },
           required: ["nom"],
         },
+      },
+      dense_brochure: {
+        type: ["boolean", "null"],
+        description:
+          "true si le document est une plaquette de portefeuille décrivant un GRAND nombre de centres/biens distincts (mode signalement : ne pas tout extraire). Sinon false/absent.",
+      },
+      nb_centres_estime: {
+        type: ["number", "null"],
+        description: "Quand dense_brochure=true : estimation du nombre de centres/biens décrits.",
       },
     },
     required: ["broker", "locaux", "centre"],

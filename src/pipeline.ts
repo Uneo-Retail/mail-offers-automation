@@ -18,10 +18,11 @@ import { resolveEmplacement } from "./notion/emplacements.js";
 import { createMagasin } from "./notion/magasins.js";
 import { createOffre } from "./notion/offres.js";
 import { pageUrl } from "./notion/client.js";
-import { notifySuccess, notifyFailure } from "./mail/reply.js";
+import { notifySuccess, notifyFailure, notifyDenseBrochure } from "./mail/reply.js";
 import { isProcessed, markProcessed, logRouting } from "./state/supabase.js";
 import { technicalGuard } from "./guard.js";
-import { offerGranularity } from "./config.js";
+import { isDenseBrochure } from "./dense.js";
+import { offerGranularity, denseBrochureMaxCenters, denseBrochureMaxPages } from "./config.js";
 import { log } from "./log.js";
 
 export type Outcome = "success" | "noise" | "failed" | "skipped";
@@ -71,6 +72,32 @@ export async function processMail(mail: IncomingMail): Promise<Outcome> {
     return "failed";
   }
 
+  // e bis. Garde-fou « plaquette dense » : ne PAS extraire en masse, signaler le PDF.
+  const maxPdfPages = content.dataDocs.reduce((max, d) => Math.max(max, d.pageCount ?? 0), 0);
+  const dense = isDenseBrochure(
+    {
+      route: cls.route,
+      denseFlag: ext.dense_brochure,
+      nbCentresEstime: ext.nb_centres_estime,
+      nbLocaux: ext.locaux.length,
+      maxPdfPages,
+    },
+    { maxCenters: denseBrochureMaxCenters(), maxPages: denseBrochureMaxPages() }
+  );
+  if (dense.dense) {
+    const { offreId, pdfUrl } = await writeDenseTrace(mail, content, ext, dense.nbCentres);
+    await notifyDenseBrochure(mail.id, dense.nbCentres, pdfUrl);
+    await markProcessed({
+      messageId: mail.id,
+      route: cls.route,
+      nbLocaux: 0,
+      notionOffreId: offreId,
+      status: "success",
+    });
+    log.info("pipeline: plaquette dense signalée (pas d'extraction en masse)", { id: mail.id, nbCentres: dense.nbCentres });
+    return "success";
+  }
+
   if (!ext.locaux || ext.locaux.length === 0) {
     await notifyFailure(mail.id, "Aucun local exploitable détecté.");
     await markProcessed({ messageId: mail.id, route: cls.route, status: "failed", error: "0 local" });
@@ -94,6 +121,57 @@ export async function processMail(mail: IncomingMail): Promise<Outcome> {
     await markProcessed({ messageId: mail.id, route: cls.route, status: "failed", error: String(err) });
     return "failed";
   }
+}
+
+/**
+ * Trace minimale pour une plaquette dense : on NE crée PAS de Magasins/Emplacements
+ * en masse. On uploade le PDF source et on crée une seule page Offre « à traiter
+ * manuellement » (État « À étudier ») pointant vers le PDF. Si la création échoue,
+ * on renvoie quand même l'URL du PDF pour la notification (l'essentiel = signaler).
+ */
+async function writeDenseTrace(
+  mail: IncomingMail,
+  content: Awaited<ReturnType<typeof routeExtraction>>,
+  ext: Extraction,
+  nbCentres: number
+): Promise<{ offreId: string | null; pdfUrl: string | null }> {
+  let pdfUrl: string | null = mail.webLink ?? null;
+  let source: UploadedFile | null = null;
+  const mainDoc = content.dataDocs.find((d) => d.attachment.content);
+  if (mainDoc?.attachment.content) {
+    try {
+      source = await uploadFile(mail.id, mainDoc.attachment.name, mainDoc.attachment.content, mainDoc.attachment.contentType);
+      pdfUrl = source.url;
+    } catch (err) {
+      log.warn("dense: upload PDF source échoué", { id: mail.id, err: String(err) });
+    }
+  }
+
+  let brokerId: string | null = null;
+  try {
+    ({ brokerId } = await resolveContactAndBroker(ext.broker));
+  } catch (err) {
+    log.warn("dense: résolution broker échouée", { id: mail.id, err: String(err) });
+  }
+
+  const emetteur = ext.broker.societe ?? "Émetteur inconnu";
+  const notes = `Plaquette de portefeuille (~${nbCentres} centres) — traitement automatique non effectué pour préserver la fiabilité. À consulter manuellement. Émetteur : ${emetteur}.`;
+
+  let offreId: string | null = null;
+  try {
+    offreId = await createOffre({
+      nom: `${emetteur} — plaquette portefeuille (à traiter manuellement)`,
+      magasinIds: [],
+      brokerId,
+      date: mail.receivedAt ? mail.receivedAt.slice(0, 10) : null,
+      notes,
+      source,
+    });
+  } catch (err) {
+    log.warn("dense: création Offre de trace échouée", { id: mail.id, err: String(err) });
+  }
+
+  return { offreId, pdfUrl };
 }
 
 async function writeToNotion(

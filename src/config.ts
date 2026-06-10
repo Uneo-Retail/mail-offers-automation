@@ -113,3 +113,7 @@ export const maxBatch = (): number => optNum("MAX_BATCH", 40);
 
 /** Autoriser volontairement le traitement de l'historique au 1er run (jamais par défaut). */
 export const forceBackfill = (): boolean => opt("FORCE_BACKFILL").toLowerCase() === "true";
+
+/** Seuils de détection « plaquette dense » (multi-centres type Terranae). */
+export const denseBrochureMaxCenters = (): number => optNum("DENSE_BROCHURE_MAX_CENTERS", 5);
+export const denseBrochureMaxPages = (): number => optNum("DENSE_BROCHURE_MAX_PAGES", 30);

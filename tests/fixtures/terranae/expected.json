@@ -1,14 +1,6 @@
 {
-  "_note": "Golden Terranae (plaquette portefeuille, PDF 141 p.) — brief §11. Déposer le mail réel sous mail.eml (ou mail.json + terranae.pdf). NB : le schéma d'extraction ne porte qu'UN centre ; le multi-centres reste une limitation connue (cf. README).",
+  "_note": "Golden Terranae (plaquette portefeuille, PDF 141 p., ~50 centres). Désormais géré par le garde-fou « plaquette dense » : le modèle pose dense_brochure=true + nb_centres_estime, laisse locaux vide, et le pipeline crée une trace minimale + notifie (cf. README). Côté runner (classify+extract uniquement) on ne vérifie donc que la route ; le comportement dense (trace + notif) est couvert par le pipeline, pas par le runner.",
   "route": "faible_completude",
   "type_offre": "plaquette_portefeuille",
-  "centre_present": true,
-  "broker": {
-    "societe": "Terranae",
-    "contact": { "email": "vlaine@terranae.com" }
-  },
-  "locaux_all": {
-    "loyer_annuel_fixe": null,
-    "droit_au_bail": null
-  }
+  "broker": { "societe": "Terranae", "contact": { "email": "vlaine@terranae.com" } }
 }

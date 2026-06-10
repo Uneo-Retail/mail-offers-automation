@@ -40,7 +40,7 @@ Ce n'est PAS "1 mail = 1 local". C'est **un pipeline avec deux variables** :
 
 ### Source mail : Microsoft Graph (pas Google)
 - Boîte **Outlook / Microsoft 365** (compte entreprise payant, accès admin OK).
-- Auth **OAuth Azure AD / Entra ID**, mode **application/daemon** (client_credentials), permission **`Mail.Read`** application + **consentement admin**.
+- Auth **OAuth Azure AD / Entra ID**, mode **application/daemon** (client_credentials), permissions application **`Mail.Read` + `Mail.ReadWrite` + `Mail.Send`** + **consentement admin** (ReadWrite + Send pour les notifications dans le fil).
 - Enregistrement app Azure = fait manuellement par Théo le moment venu (guide pas-à-pas à fournir). L'IA ne fait pas les clics portail Azure.
 
 ### Déclenchement : polling delta sur cron (DÉCIDÉ — webhook abandonné)

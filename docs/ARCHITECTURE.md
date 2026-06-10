@@ -269,7 +269,7 @@ Le `deltaLink` persistant rend le polling incrémental et idempotent.
 
 1. Portail Entra → App registrations → New registration (single tenant).
 2. Récupérer `client_id`, `tenant_id`. Créer un **client secret** → `client_secret`.
-3. API permissions → Microsoft Graph → **Application permissions** → `Mail.Read` → **Grant admin consent**.
+3. API permissions → Microsoft Graph → **Application permissions** → `Mail.Read` + `Mail.ReadWrite` + `Mail.Send` → **Grant admin consent**. (`Mail.ReadWrite` + `Mail.Send` sont nécessaires aux notifications : createReply → PATCH du brouillon → send, avec destinataire forcé sur la boîte connectée.)
 4. **Restreindre la portée à la seule boîte** de Matthieu via Application Access Policy (Exchange Online PowerShell : `New-ApplicationAccessPolicy`). Bonne pratique sécurité : sans ça l'app peut lire toutes les boîtes du tenant.
 5. Token : `POST https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token`, body `grant_type=client_credentials&scope=https://graph.microsoft.com/.default&client_id=…&client_secret=…`.
 

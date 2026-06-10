@@ -266,7 +266,7 @@ Le prompt encode toutes les règles fines (§4.4), le parsing des surfaces compo
 ## 8. Setup Microsoft Azure / Entra (manuel, fait par Théo)
 1. Entra → App registrations → New registration (single tenant). Récupérer `client_id`, `tenant_id`.
 2. Créer un client secret → `client_secret`.
-3. API permissions → Microsoft Graph → **Application permissions** → `Mail.Read` (+ `Mail.Send` pour les notifications) → **Grant admin consent**.
+3. API permissions → Microsoft Graph → **Application permissions** → `Mail.Read` + `Mail.ReadWrite` + `Mail.Send` (ReadWrite + Send pour les notifications dans le fil) → **Grant admin consent**.
 4. Restreindre la portée à la seule boîte de Matthieu via **Application Access Policy** (Exchange Online PowerShell : `New-ApplicationAccessPolicy`).
 5. Token : `POST https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token` (`grant_type=client_credentials`, `scope=https://graph.microsoft.com/.default`).
 

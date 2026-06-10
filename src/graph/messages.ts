@@ -167,17 +167,71 @@ export async function getAttachments(messageId: string): Promise<MailAttachment[
   return out;
 }
 
-/** Répond au fil (à soi-même : le owner de la boîte connectée). */
+export interface GraphRecipient {
+  emailAddress: { address?: string; name?: string };
+}
+
+/** Destinataire forcé = uniquement la boîte connectée. */
+export function buildSelfRecipients(mailbox: string): GraphRecipient[] {
+  return [{ emailAddress: { address: mailbox } }];
+}
+
+/**
+ * Garde-fou : ne conserver que les destinataires égaux à la boîte connectée
+ * (comparaison insensible à la casse). Toute autre adresse (ex. le broker
+ * expéditeur, repeuplé par Graph) est retirée.
+ */
+export function sanitizeRecipients(recipients: GraphRecipient[], mailbox: string): GraphRecipient[] {
+  const want = mailbox.trim().toLowerCase();
+  return recipients.filter((r) => (r.emailAddress?.address ?? "").trim().toLowerCase() === want);
+}
+
+/**
+ * Notifie « à soi-même » DANS le fil du mail, avec destinataire GARANTI = la boîte
+ * connectée (jamais le broker). Voie contrôlée : createReply (brouillon dans le fil)
+ * → PATCH (forcer toRecipients = MS_MAILBOX, vider cc/bcc, poser le corps HTML)
+ * → relecture + garde-fou en dur → send. Nécessite Mail.ReadWrite + Mail.Send.
+ */
 export async function replyToSelf(messageId: string, htmlBody: string): Promise<void> {
   const mailbox = graphConfig().mailbox;
-  const res = await graphFetch(`${mailboxPath()}/messages/${messageId}/reply`, {
-    method: "POST",
+
+  // 1. Brouillon de réponse (conserve conversationId + objet « RE: … »).
+  const createRes = await graphFetch(`${mailboxPath()}/messages/${messageId}/createReply`, { method: "POST" });
+  if (!createRes.ok) throw new Error(`createReply error ${createRes.status}: ${await createRes.text()}`);
+  const draft = (await createRes.json()) as { id: string };
+
+  // 2. Forcer le destinataire et poser le corps.
+  const patchRes = await graphFetch(`${mailboxPath()}/messages/${draft.id}`, {
+    method: "PATCH",
     body: JSON.stringify({
-      message: { toRecipients: [{ emailAddress: { address: mailbox } }] },
-      comment: htmlBody,
+      toRecipients: buildSelfRecipients(mailbox),
+      ccRecipients: [],
+      bccRecipients: [],
+      body: { contentType: "HTML", content: htmlBody },
     }),
   });
-  if (!res.ok) {
-    throw new Error(`replyToSelf error ${res.status}: ${await res.text()}`);
+  if (!patchRes.ok) throw new Error(`patch draft error ${patchRes.status}: ${await patchRes.text()}`);
+
+  // 3. Garde-fou en dur : relire le brouillon, refuser tout destinataire étranger.
+  const verifyRes = await graphFetch(`${mailboxPath()}/messages/${draft.id}?$select=toRecipients`);
+  if (verifyRes.ok) {
+    const drafted = (await verifyRes.json()) as { toRecipients?: GraphRecipient[] };
+    const current = drafted.toRecipients ?? [];
+    const safe = sanitizeRecipients(current, mailbox);
+    if (current.length !== safe.length || safe.length === 0) {
+      log.warn("replyToSelf: destinataire(s) étranger(s) détecté(s), re-sécurisation avant envoi", {
+        messageId,
+        found: current.map((r) => r.emailAddress?.address),
+      });
+      const fix = await graphFetch(`${mailboxPath()}/messages/${draft.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ toRecipients: buildSelfRecipients(mailbox), ccRecipients: [], bccRecipients: [] }),
+      });
+      if (!fix.ok) throw new Error("garde-fou destinataire: impossible de sécuriser toRecipients, envoi annulé");
+    }
   }
+
+  // 4. Envoi.
+  const sendRes = await graphFetch(`${mailboxPath()}/messages/${draft.id}/send`, { method: "POST" });
+  if (!sendRes.ok) throw new Error(`send error ${sendRes.status}: ${await sendRes.text()}`);
 }

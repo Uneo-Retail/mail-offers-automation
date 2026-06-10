@@ -11,10 +11,27 @@ LOCAUX (tableau, un objet par local — il peut y en avoir des dizaines) :
 - charges_locatives_annuelles : charges (€).
 - droit_au_bail : « PRIX DE CESSION » dans un cas de cession (€).
 - tf_annuelle : « Taxe foncière », « Foncier » (€).
-- type_emplacement : choisir le tag le plus proche parmi la liste. Déductions : « Rue commerçante »/« CV » (centre-ville) → Rue ; « CC » → Centre Commercial. Sinon null.
-- duree_ferme : durées fermes (bail) parmi 1/3/4/6/10/12 ans ; peut en avoir plusieurs.
+- type_emplacement : déduire le type physique SEULEMENT s'il est explicite ou évident :
+  - vitrine / local sur rue commerçante → « Rue » ; « CV » (centre-ville) → « Rue » ;
+  - « CC » / « centre commercial » → « Centre Commercial » ;
+  - pied d'immeuble explicite → « Pied d'Immeuble » ; etc.
+  Si le type physique n'est pas clair → null (ne PAS deviner). La QUALITÉ d'emplacement
+  (« n°1 », « n°1 bis », « numéro 1 », « n°2 »…) n'est PAS un type : ne jamais la mapper dans
+  type_emplacement ; la mettre dans observations (ex. « Emplacement : n°1 »).
+- duree_ferme : durées FERMES du bail parmi 1/3/4/6/10/12 ans.
+  - « Bail 3/6/9 » (ou « 3 6 9 », « bail commercial classique ») = bail français standard : la
+    première période ferme est de 3 ans → duree_ferme = ["3 ans"] (PAS 3+6+9).
+  - N'ajouter plusieurs tags QUE si plusieurs durées fermes distinctes sont explicitement
+    proposées (ex. « ferme 6 ou 9 ans » → ["6 ans","9 ans"]).
+  - En cas de doute → tableau vide. Reporter aussi la mention brute du bail dans observations.
 - date_fin_bail : YYYY-MM-DD. « En attente » / non communiqué → null.
 - environnement_commercial : enseignes mitoyennes / « SITUATION » → tel quel, SANS reformulation (ce texte ira dans Notes).
+- observations : déversoir pour TOUTE information utile NON couverte par un autre champ — dépôt de
+  garantie, honoraires/commission, type de bail (ex. « 3/6/9, bail neuf »), linéaire de vitrine,
+  qualité d'emplacement (n°1, n°1 bis…), références (ex. PR7-1558), mentions diverses (« compatible
+  restauration rapide »). Recopier les valeurs TELLES QUELLES, formatées « Label : valeur », une par
+  ligne (retours à la ligne). Ne PAS reformuler. Ce qui a déjà une propriété dédiée (surfaces, loyer,
+  charges, TF, droit au bail, durée ferme, dates…) ne va PAS dans observations.
 - fichiers.plan / fichiers.photo : si un nom de fichier de PJ identifie clairement ce local (« ANNECY CV SOMMEILLER PLAN »), reporte le nom de fichier ; sinon null.
 
 BROKER (société, PAS une personne) :

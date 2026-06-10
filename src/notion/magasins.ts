@@ -14,9 +14,14 @@ export interface MagasinLinks {
   plans?: { name: string; url: string }[];
 }
 
-/** Assemble le déversoir Notes (environnement commercial, sans reformulation). */
-function buildNotes(local: Local): string | null {
-  const parts = [local.environnement_commercial?.trim()].filter(Boolean) as string[];
+/**
+ * Assemble le déversoir Notes (sans reformulation) : environnement commercial
+ * puis observations, une info par ligne. Null si les deux sont vides.
+ */
+export function buildNotes(local: Pick<Local, "environnement_commercial" | "observations">): string | null {
+  const parts = [local.environnement_commercial?.trim(), local.observations?.trim()].filter(
+    Boolean
+  ) as string[];
   return parts.length ? parts.join("\n") : null;
 }
 

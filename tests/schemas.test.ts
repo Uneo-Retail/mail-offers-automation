@@ -65,6 +65,21 @@ test("extractionSchema : applique les défauts duree_ferme/fichiers", () => {
   assert.deepEqual(parsed.locaux[0]!.fichiers, { plan: null, photo: null });
 });
 
+test("extractionSchema : accepte observations renseigné ou null", () => {
+  const base = {
+    centre: null,
+    broker: { societe: null, societe_url: null, contact: { nom_complet: null, email: null, telephone: null, role: null, adresse_postale: null, source: null } },
+  };
+  const withObs = extractionSchema.parse({
+    ...base,
+    locaux: [{ nom: "Paris IX", observations: "Dépôt de garantie : 28 750 €\nHonoraires : 27 000 € HT" }],
+  });
+  assert.match(withObs.locaux[0]!.observations!, /28 750/);
+
+  const withNull = extractionSchema.parse({ ...base, locaux: [{ nom: "X", observations: null }] });
+  assert.equal(withNull.locaux[0]!.observations ?? null, null);
+});
+
 test("extractionSchema : rejette un type_emplacement hors liste", () => {
   assert.throws(() =>
     extractionSchema.parse({

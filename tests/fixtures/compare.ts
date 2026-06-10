@@ -113,6 +113,18 @@ export function compareExtraction(expected: Expected, ext: Extraction): Check[] 
     for (const [field, val] of Object.entries(exp)) {
       if (field === "match") continue;
       const got = (local as Record<string, unknown>)[field];
+      // Champ texte libre (ex. observations) : attendu = liste de sous-chaînes à
+      // toutes retrouver (insensible casse/accents), pas une égalité stricte.
+      if (Array.isArray(val) && typeof got === "string" && field !== "duree_ferme") {
+        const missing = (val as string[]).filter((s) => !normalizeKey(got).includes(normalizeKey(s)));
+        checks.push({
+          label: `local[${exp.match}].${field}`,
+          ok: missing.length === 0,
+          expected: `contient ${JSON.stringify(val)}`,
+          got: missing.length === 0 ? "ok" : `manquant : ${JSON.stringify(missing)}`,
+        });
+        continue;
+      }
       checks.push({ label: `local[${exp.match}].${field}`, ok: eqValue(field, val, got), expected: val, got });
     }
   }

@@ -105,6 +105,7 @@ export const localSchema = z.object({
   date_fin_bail: nullableString, // YYYY-MM-DD
   annee_bail: nullableString,
   environnement_commercial: nullableString,
+  observations: nullableString,
   fichiers: z
     .object({ plan: nullableString, photo: nullableString })
     .default({ plan: null, photo: null }),
@@ -190,6 +191,11 @@ export const extractTool = {
             date_fin_bail: { ...strProp, description: "YYYY-MM-DD. « En attente »/non communiqué → null." },
             annee_bail: strProp,
             environnement_commercial: { ...strProp, description: "Enseignes mitoyennes / situation → ira dans Notes, sans reformulation." },
+            observations: {
+              ...strProp,
+              description:
+                "Toute information utile NON couverte par un autre champ : dépôt de garantie, honoraires/commission, type de bail (ex. 3/6/9), linéaire de vitrine, qualité d'emplacement (n°1, n°1 bis…), références, mentions diverses. Recopier les valeurs telles quelles, formatées en « Label : valeur », séparées par des retours à la ligne. Ne PAS reformuler.",
+            },
             fichiers: {
               type: "object",
               properties: { plan: strProp, photo: strProp },

@@ -1,0 +1,6 @@
+{
+  "subject": "Facture n°2026-0412 - Prestation de nettoyage mai 2026",
+  "from": { "name": "Net Pro Services", "email": "comptabilite@netpro-services.fr" },
+  "toRecipients": [{ "email": "matthieu@uneo-retail.com" }],
+  "bodyText": "Bonjour,\n\nVeuillez trouver ci-joint la facture n°2026-0412 correspondant à notre prestation de nettoyage des bureaux pour le mois de mai 2026.\n\nMontant total : 480,00 € TTC. Échéance de règlement : 30 jours.\n\nMerci de bien vouloir procéder au paiement par virement sur le RIB habituel.\n\nCordialement,\nService comptabilité - Net Pro Services"
+}

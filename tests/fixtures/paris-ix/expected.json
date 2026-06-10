@@ -1,0 +1,20 @@
+{
+  "_note": "Golden de référence Paris IX / Premium Retail (location). Déposer mail.eml réel pour exécuter la partie IA. type_emplacement volontairement NON contraint (Rue ou null acceptés) ; la qualité « n°1 » doit aller dans observations, pas dans type_emplacement.",
+  "route": "offre",
+  "type_offre": "location",
+  "nb_locaux": 1,
+  "centre_present": false,
+  "broker": { "societe": "Premium Retail" },
+  "locaux": [
+    {
+      "match": "Paris",
+      "surface_rdc": 110,
+      "surface_r_plus_1": 18,
+      "surface_r_moins_1": 65,
+      "surface_ponderee": 193,
+      "loyer_annuel_fixe": 90000,
+      "duree_ferme": ["3 ans"],
+      "observations": ["28 750", "27 000", "3/6/9", "bail neuf", "4,5", "restauration rapide", "PR7-1558", "n°1"]
+    }
+  ]
+}

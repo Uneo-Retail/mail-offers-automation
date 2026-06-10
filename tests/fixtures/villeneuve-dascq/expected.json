@@ -1,0 +1,21 @@
+{
+  "_note": "Golden de référence Villeneuve-d'Ascq / Enterprise Immo (OFFRE 34223, location, axe passant env. Auchan V2). Déposer mail.eml réel pour exécuter la partie IA. Le loyer formel (conditions financières) 78 835 € prime sur la prose (78 385 €), avec note de divergence en observations. type_emplacement non tranché → null.",
+  "route": "offre",
+  "type_offre": "location",
+  "nb_locaux": 1,
+  "centre_present": false,
+  "broker": { "societe": "Enterprise Immo" },
+  "locaux": [
+    {
+      "match": "Villeneuve",
+      "surface_rdc": 257,
+      "surface_ponderee": 257,
+      "loyer_annuel_fixe": 78835,
+      "tf_annuelle": 5847,
+      "charges_locatives_annuelles": 2262,
+      "duree_ferme": ["3 ans"],
+      "type_emplacement": null,
+      "observations": ["Montant à vérifier", "78 385", "78 835", "retenu 78 835", "34223", "3 mois de loyer", "Honoraires", "axe passant"]
+    }
+  ]
+}

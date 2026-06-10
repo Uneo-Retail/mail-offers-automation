@@ -1,0 +1,20 @@
+{
+  "_note": "Golden Zadig & Voltaire (cession, xlsx, 7 locaux) — brief §11. Déposer le mail réel dans ce dossier sous mail.eml (ou mail.json + zadig.xlsx) pour exécuter la partie IA.",
+  "route": "offre",
+  "type_offre": "cession",
+  "nb_locaux": 7,
+  "centre_present": false,
+  "broker": {
+    "societe": "Marcle Immobilier",
+    "contact": { "email": "marcleimmobilier@orange.fr", "telephone": "0609501861" }
+  },
+  "locaux": [
+    { "match": "Annecy", "surface_rdc": 86, "surface_ponderee": 115, "loyer_annuel_fixe": 33224, "droit_au_bail": 350000 },
+    { "match": "Boulogne", "surface_rdc": 98, "surface_r_plus_1": 86, "surface_ponderee": 258, "loyer_annuel_fixe": 304506, "droit_au_bail": 50000 },
+    { "match": "1 Vieux Colombier", "surface_rdc": 75, "surface_ponderee": 93.5, "loyer_annuel_fixe": 134300, "droit_au_bail": 400000 },
+    { "match": "3 Vieux Colombier", "surface_rdc": 61, "surface_ponderee": 79, "loyer_annuel_fixe": 170620, "droit_au_bail": 200000 },
+    { "match": "Turenne", "surface_rdc": 151, "surface_r_moins_1": 53, "surface_ponderee": 256, "loyer_annuel_fixe": 334900, "droit_au_bail": 1000000 },
+    { "match": "Peres", "surface_rdc": 73, "surface_r_plus_1": 108, "loyer_annuel_fixe": 372050, "droit_au_bail": 300000 },
+    { "match": "Parly", "surface_rdc": 110, "surface_ponderee": 116, "loyer_annuel_fixe": 343200, "droit_au_bail": 100000 }
+  ]
+}

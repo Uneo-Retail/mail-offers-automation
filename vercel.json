@@ -1,5 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "echo 'no build step - serverless functions only'",
+  "outputDirectory": ".",
   "functions": {
     "api/poll.ts": {
       "maxDuration": 60

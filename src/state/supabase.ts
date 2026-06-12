@@ -12,7 +12,11 @@ let client: SupabaseClient | null = null;
 function db(): SupabaseClient {
   if (!client) {
     const cfg = supabaseConfig();
-    client = createClient(cfg.url, cfg.serviceKey, { auth: { persistSession: false } });
+    // Client backend (serverless) uniquement : la clé service_role (lue depuis
+    // SUPABASE_SERVICE_KEY) bypass la RLS. Pas de session ni de refresh côté daemon.
+    client = createClient(cfg.url, cfg.serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
   }
   return client;
 }

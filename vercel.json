@@ -1,14 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [
-    {
-      "path": "/api/poll",
-      "schedule": "*/10 * * * *"
-    }
-  ],
   "functions": {
     "api/poll.ts": {
-      "maxDuration": 300
+      "maxDuration": 60
     }
   }
 }

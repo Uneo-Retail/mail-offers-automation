@@ -52,6 +52,14 @@ export class PropsBuilder {
     return this;
   }
 
+  /** Rich text déjà assemblé (mentions de page, liens…) pour une propriété rich_text. */
+  richText(name: string, richText: unknown[] | null | undefined): this {
+    if (this.canWrite(name, "rich_text", !!richText && richText.length > 0)) {
+      this.props[name] = { rich_text: richText };
+    }
+    return this;
+  }
+
   number(name: string, value: number | null | undefined): this {
     if (this.canWrite(name, "number", value != null && Number.isFinite(value))) {
       this.props[name] = { number: value };

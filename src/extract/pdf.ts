@@ -6,7 +6,20 @@
  *    vision native à Sonnet (lecture fidèle, plans/tableaux mis en page).
  *  - Gros PDF (Terranae : 141 p.) → texte d'abord ; ne pas envoyer 141 pages en
  *    vision (coût/poids). La rastérisation ciblée des plans est une étape V2.
+ *
+ * ⚠️ Worker pdfjs en serverless (Vercel) : pdfjs v4 charge `pdf.worker.mjs` pour
+ * exécuter le parsing (même en « fake worker » main-thread sous Node, il IMPORTE
+ * le module worker). En production le fichier n'est pas packagé par défaut →
+ * « Setting up fake worker failed: Cannot find module …/pdf.worker.mjs ». On fige
+ * donc `GlobalWorkerOptions.workerSrc` sur le chemin RÉELLEMENT résolu dans
+ * node_modules (via require.resolve), et on package ce fichier dans la fonction
+ * Vercel via `includeFiles` (cf. vercel.json). Exécution sur le thread principal,
+ * sans worker dédié.
  */
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+
 /** Seuil au-delà duquel on ne propose plus la vision plein-PDF. */
 export const SMALL_PDF_PAGES = 10;
 
@@ -17,9 +30,20 @@ export interface PdfExtraction {
   pages: string[];
 }
 
-// Chargement paresseux du build legacy (compatible Node, sans worker).
+let pdfjsModule: typeof import("pdfjs-dist/legacy/build/pdf.mjs") | null = null;
+
+// Chargement paresseux du build legacy + fixation du worker (une seule fois).
 async function getPdfjs(): Promise<typeof import("pdfjs-dist/legacy/build/pdf.mjs")> {
-  return import("pdfjs-dist/legacy/build/pdf.mjs");
+  if (pdfjsModule) return pdfjsModule;
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  try {
+    // Pointer sur le worker réellement présent dans le node_modules déployé.
+    pdfjs.GlobalWorkerOptions.workerSrc = require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs");
+  } catch {
+    // Si la résolution échoue, laisser pdfjs gérer (mode dégradé) plutôt que crasher ici.
+  }
+  pdfjsModule = pdfjs;
+  return pdfjs;
 }
 
 export async function pdfToText(buffer: Buffer): Promise<PdfExtraction> {
@@ -29,8 +53,9 @@ export async function pdfToText(buffer: Buffer): Promise<PdfExtraction> {
     data,
     isEvalSupported: false,
     useSystemFonts: true,
-    // Pas de worker en environnement serverless Node.
     disableFontFace: true,
+    // Pas de fetch via worker : tout reste sur le thread principal en serverless.
+    useWorkerFetch: false,
   }).promise;
 
   const pages: string[] = [];

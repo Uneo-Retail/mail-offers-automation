@@ -8,3 +8,9 @@ tests/fixtures/**/*.pdf
 tests/fixtures/**/*.xlsx
 tests/fixtures/**/*.eml
 .DS_Store
+
+# Next.js
+/.next/
+/out/
+*.tsbuildinfo
+next-env.d.ts

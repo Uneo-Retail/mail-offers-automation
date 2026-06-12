@@ -3,10 +3,17 @@
  * ⚠️ Noms de propriétés exacts, dont « Surface R+1 » avec ESPACE final.
  */
 import { notionConfig } from "../config.js";
-import { getSchema, createPageTemplated } from "./client.js";
+import { getSchema, createPageTemplated, updatePage } from "./client.js";
 import { PropsBuilder } from "./propsMap.js";
 import { buildMagasinTitle } from "./titles.js";
 import type { Local } from "../ai/schemas.js";
+
+/** Patche les Notes (rich text avec mentions) d'un Magasin déjà créé. */
+export async function patchMagasinNotes(magasinId: string, richText: unknown[]): Promise<void> {
+  const schema = await getSchema(notionConfig().ds.magasins);
+  const props = new PropsBuilder(schema).richText("Notes", richText).build();
+  if (Object.keys(props).length) await updatePage(magasinId, props);
+}
 
 export interface MagasinLinks {
   brokerId?: string | null;

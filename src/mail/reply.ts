@@ -5,10 +5,24 @@
 import { replyToSelf } from "../graph/messages.js";
 import { log, serializeError } from "../log.js";
 
-export async function notifySuccess(messageId: string, offrePageUrl: string): Promise<void> {
-  const html = `Cette offre a été traité par le système Notion, elle est disponible sur cette page : <a href="${offrePageUrl}">${offrePageUrl}</a>`;
+/** Corps HTML de la notification de succès (LOT 8) — pur, testable. */
+export function buildSuccessHtml(offrePageUrl: string, brokerName?: string | null): string {
+  const broker = brokerName?.trim() || "l'expéditeur";
+  return [
+    `<p>✅ <b>Traité par l'IA</b></p>`,
+    `<p>Cette offre a été ajoutée dans Notion, disponible dans <a href="${offrePageUrl}"><b>cette page</b></a>.</p>`,
+    `<hr>`,
+    `<p>💬 <i>Note de l'IA : Ce mail est une note personnelle, il n'est pas visible par ${broker}.</i></p>`,
+  ].join("\n");
+}
+
+export async function notifySuccess(
+  messageId: string,
+  offrePageUrl: string,
+  brokerName?: string | null
+): Promise<void> {
   try {
-    await replyToSelf(messageId, html);
+    await replyToSelf(messageId, buildSuccessHtml(offrePageUrl, brokerName));
   } catch (err) {
     log.warn("notifySuccess: échec d'envoi", { messageId, err: serializeError(err) });
   }

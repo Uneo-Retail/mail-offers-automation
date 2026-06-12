@@ -23,7 +23,7 @@ import { buildMagasinNotesRichText, buildOffreNotesRichText } from "./notion/not
 import { nearbyCities } from "./ai/zone.js";
 import { pageUrl } from "./notion/client.js";
 import { notifySuccess, notifyFailure, notifyDenseBrochure } from "./mail/reply.js";
-import { isProcessed, markProcessed, logRouting } from "./state/supabase.js";
+import { isProcessed, markProcessed, logRouting, emitEvent } from "./state/supabase.js";
 import { technicalGuard } from "./guard.js";
 import { isDenseBrochure } from "./dense.js";
 import { offerGranularity, denseBrochureMaxCenters, denseBrochureMaxPages } from "./config.js";
@@ -38,19 +38,29 @@ export async function processMail(mail: IncomingMail): Promise<Outcome> {
     return "skipped";
   }
 
+  // sujet/expéditeur conservés sur chaque enregistrement (affichage console admin)
+  const meta = { subject: mail.subject || null, sender: mail.from.email || mail.from.name || null };
+  const mark = (rec: Omit<Parameters<typeof markProcessed>[0], "subject" | "sender">) =>
+    markProcessed({ ...rec, ...meta });
+
   // b. garde-fou technique
   const guard = technicalGuard(mail);
   if (guard.drop) {
     log.info("pipeline: écarté par le garde-fou", { id: mail.id, reason: guard.reason });
-    await markProcessed({ messageId: mail.id, status: "skipped", error: guard.reason });
+    await mark({ messageId: mail.id, status: "skipped", error: guard.reason });
     return "skipped";
   }
 
+  await emitEvent(mail.id, "mail_recu", mail.subject || "(sans objet)");
+
   // c. extraction multi-format (déterministe)
+  await emitEvent(mail.id, "extraction_contenu", "corps, PDF, xlsx, liens, pièces jointes");
   const content = await routeExtraction(mail);
 
   // d. classification / routage (Haiku)
+  await emitEvent(mail.id, "classification", "appel Anthropic (Haiku)");
   const cls = await classifyMail(mail, content);
+  await emitEvent(mail.id, "classification_ok", `route=${cls.route} type=${cls.type_offre} confiance=${cls.confiance}`);
   await logRouting({
     messageId: mail.id,
     route: cls.route,
@@ -60,19 +70,23 @@ export async function processMail(mail: IncomingMail): Promise<Outcome> {
   });
 
   if (cls.route === "bruit") {
+    await emitEvent(mail.id, "hors_scope", cls.raison);
     await notifyFailure(mail.id);
-    await markProcessed({ messageId: mail.id, route: "bruit", status: "noise", error: cls.raison });
+    await mark({ messageId: mail.id, route: "bruit", status: "noise", error: cls.raison });
     return "noise";
   }
 
   // e. extraction structurée (Sonnet)
+  await emitEvent(mail.id, "extraction_ia", "appel Anthropic (Sonnet)");
   let ext: Extraction;
   try {
     ext = await extractOffer(mail, content);
+    await emitEvent(mail.id, "extraction_ia_ok", `${ext.locaux.length} local(aux) extrait(s)`);
   } catch (err) {
+    await emitEvent(mail.id, "extraction_ia_echec", serializeError(err), "error");
     log.error("pipeline: extraction échouée", { id: mail.id, err: serializeError(err) });
     await notifyFailure(mail.id, "Extraction impossible.");
-    await markProcessed({ messageId: mail.id, route: cls.route, status: "failed", error: serializeError(err) });
+    await mark({ messageId: mail.id, route: cls.route, status: "failed", error: serializeError(err) });
     return "failed";
   }
 
@@ -89,9 +103,10 @@ export async function processMail(mail: IncomingMail): Promise<Outcome> {
     { maxCenters: denseBrochureMaxCenters(), maxPages: denseBrochureMaxPages() }
   );
   if (dense.dense) {
+    await emitEvent(mail.id, "plaquette_dense", `~${dense.nbCentres} centres — signalement (pas d'extraction en masse)`, "warn");
     const { offreId, pdfUrl } = await writeDenseTrace(mail, content, ext, dense.nbCentres);
     await notifyDenseBrochure(mail.id, dense.nbCentres, pdfUrl);
-    await markProcessed({
+    await mark({
       messageId: mail.id,
       route: cls.route,
       nbLocaux: 0,
@@ -104,25 +119,28 @@ export async function processMail(mail: IncomingMail): Promise<Outcome> {
 
   if (!ext.locaux || ext.locaux.length === 0) {
     await notifyFailure(mail.id, "Aucun local exploitable détecté.");
-    await markProcessed({ messageId: mail.id, route: cls.route, status: "failed", error: "0 local" });
+    await mark({ messageId: mail.id, route: cls.route, status: "failed", error: "0 local" });
     return "failed";
   }
 
   try {
     const { offreId, brokerName } = await writeToNotion(mail, content, ext, cls.type_offre);
+    await emitEvent(mail.id, "notification_envoyee", "réponse dans le fil (à soi-même)");
     await notifySuccess(mail.id, pageUrl(offreId), brokerName);
-    await markProcessed({
+    await mark({
       messageId: mail.id,
       route: cls.route,
       nbLocaux: ext.locaux.length,
       notionOffreId: offreId,
       status: "success",
     });
+    await emitEvent(mail.id, "termine", `offre créée : ${pageUrl(offreId)}`);
     return "success";
   } catch (err) {
+    await emitEvent(mail.id, "ecriture_notion_echec", serializeError(err), "error");
     log.error("pipeline: écriture Notion échouée", { id: mail.id, err: serializeError(err) });
     await notifyFailure(mail.id, "Écriture Notion impossible.");
-    await markProcessed({ messageId: mail.id, route: cls.route, status: "failed", error: serializeError(err) });
+    await mark({ messageId: mail.id, route: cls.route, status: "failed", error: serializeError(err) });
     return "failed";
   }
 }
@@ -239,9 +257,12 @@ async function writeToNotion(
     bucket.set(idx, arr);
   }
 
+  await emitEvent(mail.id, "upload_azure", `${sharedDocs.length} document(s), médias inclus`);
+
   // 2. Broker / Contact.
   const { brokerId, contactId } = await resolveContactAndBroker(ext.broker);
   const brokerName = ext.broker.societe ?? ext.broker.contact.nom_complet ?? null;
+  await emitEvent(mail.id, "resolution_broker", brokerName ?? "(broker inconnu)");
 
   // 3. Pays (partagé, défaut France) — best-effort.
   const paysId = await safe(() => resolvePays(null), null);
@@ -268,6 +289,7 @@ async function writeToNotion(
   };
 
   // 5. Création des N Magasins (sans rich notes : le self-mention exige l'ID).
+  await emitEvent(mail.id, "creation_notion", `création de ${ext.locaux.length} magasin(s) + offre`);
   const magasinIds: string[] = [];
   const perLocalDocs: { name: string; url: string }[][] = [];
   const perLocalVille: (string | null)[] = [];

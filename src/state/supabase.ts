@@ -69,6 +69,8 @@ export interface ProcessedRecord {
   notionOffreId?: string | null;
   status: ProcessStatus;
   error?: string | null;
+  subject?: string | null;
+  sender?: string | null;
 }
 
 export async function markProcessed(rec: ProcessedRecord): Promise<void> {
@@ -80,6 +82,8 @@ export async function markProcessed(rec: ProcessedRecord): Promise<void> {
     notion_offre_id: rec.notionOffreId ?? null,
     status: rec.status,
     error: rec.error ?? null,
+    subject: rec.subject ?? null,
+    sender: rec.sender ?? null,
   });
   if (error) throw error;
 }
@@ -101,4 +105,29 @@ export async function logRouting(entry: {
   });
   // le log ne doit jamais bloquer le pipeline
   if (error) console.error("logRouting error", serializeError(error));
+}
+
+export type EventLevel = "info" | "warn" | "error";
+
+/**
+ * Émet un événement de traitement (console admin "live"). BEST-EFFORT :
+ * une écriture qui échoue NE DOIT PAS casser le pipeline.
+ */
+export async function emitEvent(
+  messageId: string,
+  step: string,
+  detail?: string | null,
+  level: EventLevel = "info"
+): Promise<void> {
+  try {
+    const { error } = await db().from("processing_events").insert({
+      message_id: messageId,
+      step,
+      detail: detail ?? null,
+      level,
+    });
+    if (error) console.error("emitEvent error", serializeError(error));
+  } catch (err) {
+    console.error("emitEvent error", serializeError(err));
+  }
 }

@@ -26,6 +26,11 @@ export function _setClient(c: SupabaseClient | null): void {
   client = c;
 }
 
+/** Client Supabase service_role (lecture serveur, ex. routes /api/admin). */
+export function getClient(): SupabaseClient {
+  return db();
+}
+
 const DELTA_KEY = "inbox_delta";
 
 export async function getDeltaLink(): Promise<string | null> {

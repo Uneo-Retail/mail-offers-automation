@@ -3,14 +3,14 @@
  * Wording exact imposé par le brief client.
  */
 import { replyToSelf } from "../graph/messages.js";
-import { log } from "../log.js";
+import { log, serializeError } from "../log.js";
 
 export async function notifySuccess(messageId: string, offrePageUrl: string): Promise<void> {
   const html = `Cette offre a été traité par le système Notion, elle est disponible sur cette page : <a href="${offrePageUrl}">${offrePageUrl}</a>`;
   try {
     await replyToSelf(messageId, html);
   } catch (err) {
-    log.warn("notifySuccess: échec d'envoi", { messageId, err: String(err) });
+    log.warn("notifySuccess: échec d'envoi", { messageId, err: serializeError(err) });
   }
 }
 
@@ -25,7 +25,7 @@ export async function notifyDenseBrochure(
   try {
     await replyToSelf(messageId, html);
   } catch (err) {
-    log.warn("notifyDenseBrochure: échec d'envoi", { messageId, err: String(err) });
+    log.warn("notifyDenseBrochure: échec d'envoi", { messageId, err: serializeError(err) });
   }
 }
 
@@ -35,6 +35,6 @@ export async function notifyFailure(messageId: string, reason?: string): Promise
   try {
     await replyToSelf(messageId, html);
   } catch (err) {
-    log.warn("notifyFailure: échec d'envoi", { messageId, err: String(err) });
+    log.warn("notifyFailure: échec d'envoi", { messageId, err: serializeError(err) });
   }
 }

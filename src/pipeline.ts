@@ -23,7 +23,7 @@ import { isProcessed, markProcessed, logRouting } from "./state/supabase.js";
 import { technicalGuard } from "./guard.js";
 import { isDenseBrochure } from "./dense.js";
 import { offerGranularity, denseBrochureMaxCenters, denseBrochureMaxPages } from "./config.js";
-import { log } from "./log.js";
+import { log, serializeError } from "./log.js";
 
 export type Outcome = "success" | "noise" | "failed" | "skipped";
 
@@ -66,9 +66,9 @@ export async function processMail(mail: IncomingMail): Promise<Outcome> {
   try {
     ext = await extractOffer(mail, content);
   } catch (err) {
-    log.error("pipeline: extraction échouée", { id: mail.id, err: String(err) });
+    log.error("pipeline: extraction échouée", { id: mail.id, err: serializeError(err) });
     await notifyFailure(mail.id, "Extraction impossible.");
-    await markProcessed({ messageId: mail.id, route: cls.route, status: "failed", error: String(err) });
+    await markProcessed({ messageId: mail.id, route: cls.route, status: "failed", error: serializeError(err) });
     return "failed";
   }
 
@@ -116,9 +116,9 @@ export async function processMail(mail: IncomingMail): Promise<Outcome> {
     });
     return "success";
   } catch (err) {
-    log.error("pipeline: écriture Notion échouée", { id: mail.id, err: String(err) });
+    log.error("pipeline: écriture Notion échouée", { id: mail.id, err: serializeError(err) });
     await notifyFailure(mail.id, "Écriture Notion impossible.");
-    await markProcessed({ messageId: mail.id, route: cls.route, status: "failed", error: String(err) });
+    await markProcessed({ messageId: mail.id, route: cls.route, status: "failed", error: serializeError(err) });
     return "failed";
   }
 }
@@ -143,7 +143,7 @@ async function writeDenseTrace(
       source = await uploadFile(mail.id, mainDoc.attachment.name, mainDoc.attachment.content, mainDoc.attachment.contentType);
       pdfUrl = source.url;
     } catch (err) {
-      log.warn("dense: upload PDF source échoué", { id: mail.id, err: String(err) });
+      log.warn("dense: upload PDF source échoué", { id: mail.id, err: serializeError(err) });
     }
   }
 
@@ -151,7 +151,7 @@ async function writeDenseTrace(
   try {
     ({ brokerId } = await resolveContactAndBroker(ext.broker));
   } catch (err) {
-    log.warn("dense: résolution broker échouée", { id: mail.id, err: String(err) });
+    log.warn("dense: résolution broker échouée", { id: mail.id, err: serializeError(err) });
   }
 
   const emetteur = ext.broker.societe ?? "Émetteur inconnu";
@@ -168,7 +168,7 @@ async function writeDenseTrace(
       source,
     });
   } catch (err) {
-    log.warn("dense: création Offre de trace échouée", { id: mail.id, err: String(err) });
+    log.warn("dense: création Offre de trace échouée", { id: mail.id, err: serializeError(err) });
   }
 
   return { offreId, pdfUrl };

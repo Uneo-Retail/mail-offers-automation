@@ -16,3 +16,26 @@ export const log = {
   warn: (msg: string, meta?: Record<string, unknown>) => emit("warn", msg, meta),
   error: (msg: string, meta?: Record<string, unknown>) => emit("error", msg, meta),
 };
+
+/**
+ * Rend une erreur quelconque en texte lisible (fin des « [object Object] »).
+ * - `Error` → « Name: message » (+ code/status/statusCode si présents) ;
+ * - objet d'erreur Supabase/Notion/HTTP → JSON ;
+ * - string → telle quelle.
+ */
+export function serializeError(err: unknown): string {
+  if (err instanceof Error) {
+    const anyErr = err as { code?: unknown; status?: unknown; statusCode?: unknown };
+    const extra = [anyErr.code, anyErr.status, anyErr.statusCode]
+      .filter((v) => v !== undefined)
+      .join(" ");
+    const base = `${err.name}: ${err.message}`;
+    return extra ? `${base} (${extra})` : base;
+  }
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}

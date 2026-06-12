@@ -12,7 +12,7 @@ import { xlsxToText } from "./xlsx.js";
 import { pdfToText, isSmallPdf } from "./pdf.js";
 import { triageAttachments } from "./attachments.js";
 import { fetchLinkText, isFollowableLink } from "./link.js";
-import { log } from "../log.js";
+import { log, serializeError } from "../log.js";
 
 const MAX_LINKS_FOLLOWED = 3;
 
@@ -60,7 +60,7 @@ export async function routeExtraction(mail: IncomingMail): Promise<ExtractedCont
         if (text && /[\x20-\x7E]/.test(text)) dataDocs.push({ attachment: att, text });
       }
     } catch (err) {
-      log.warn("router: échec extraction document", { name: att.name, err: String(err) });
+      log.warn("router: échec extraction document", { name: att.name, err: serializeError(err) });
     }
   }
 

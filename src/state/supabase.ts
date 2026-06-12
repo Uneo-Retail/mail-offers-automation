@@ -6,6 +6,7 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { supabaseConfig } from "../config.js";
+import { serializeError } from "../log.js";
 
 let client: SupabaseClient | null = null;
 function db(): SupabaseClient {
@@ -95,5 +96,5 @@ export async function logRouting(entry: {
     created_at: new Date().toISOString(),
   });
   // le log ne doit jamais bloquer le pipeline
-  if (error) console.error("logRouting error", error.message);
+  if (error) console.error("logRouting error", serializeError(error));
 }

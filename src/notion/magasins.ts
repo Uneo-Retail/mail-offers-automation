@@ -3,15 +3,28 @@
  * ⚠️ Noms de propriétés exacts, dont « Surface R+1 » avec ESPACE final.
  */
 import { notionConfig } from "../config.js";
-import { getSchema, createPage } from "./client.js";
+import { getSchema, createPageTemplated, updatePage } from "./client.js";
 import { PropsBuilder } from "./propsMap.js";
+import { buildMagasinTitle } from "./titles.js";
 import type { Local } from "../ai/schemas.js";
+
+/** Patche les Notes (rich text avec mentions) d'un Magasin déjà créé. */
+export async function patchMagasinNotes(magasinId: string, richText: unknown[]): Promise<void> {
+  const schema = await getSchema(notionConfig().ds.magasins);
+  const props = new PropsBuilder(schema).richText("Notes", richText).build();
+  if (Object.keys(props).length) await updatePage(magasinId, props);
+}
 
 export interface MagasinLinks {
   brokerId?: string | null;
   emplacementId?: string | null;
+  villeId?: string | null;
+  paysId?: string | null;
+  zoneVilleIds?: string[] | null;
   documents?: { name: string; url: string }[];
   plans?: { name: string; url: string }[];
+  /** Notes en rich text (mentions de page + liens) ; prioritaire sur buildNotes. */
+  notesRichText?: unknown[] | null;
 }
 
 /**
@@ -26,12 +39,19 @@ export function buildNotes(local: Pick<Local, "environnement_commercial" | "obse
 }
 
 export async function createMagasin(local: Local, links: MagasinLinks): Promise<string> {
-  const ds = notionConfig().ds.magasins;
+  const cfg = notionConfig();
+  const ds = cfg.ds.magasins;
   const schema = await getSchema(ds);
   const titleName = Object.values(schema).find((p) => p.type === "title")?.name ?? "Nom";
 
+  const title = buildMagasinTitle({
+    observations: local.observations,
+    adresse: local.adresse_complete,
+    nom: local.nom,
+  });
+
   const b = new PropsBuilder(schema)
-    .title(titleName, local.nom)
+    .title(titleName, title)
     .text("Adresse complète", local.adresse_complete)
     .number("Surface RDC", local.surface_rdc)
     .number("Surface R-1", local.surface_r_moins_1)
@@ -47,12 +67,18 @@ export async function createMagasin(local: Local, links: MagasinLinks): Promise<
     .multiSelect("Durée ferme", local.duree_ferme)
     .date("Date de fin de bail", local.date_fin_bail)
     .text("Année du bail", local.annee_bail)
-    .text("Notes", buildNotes(local))
     .files("Documents", links.documents)
     .files("Plan local/CC", links.plans);
 
+  // Notes : rich text (mentions + liens) si fourni, sinon texte simple.
+  if (links.notesRichText && links.notesRichText.length) b.richText("Notes", links.notesRichText);
+  else b.text("Notes", buildNotes(local));
+
   if (links.brokerId) b.relation("Brokers", [links.brokerId]);
   if (links.emplacementId) b.relation("Emplacement", [links.emplacementId]);
+  if (links.villeId) b.relation("Ville", [links.villeId]);
+  if (links.paysId) b.relation("Pays", [links.paysId]);
+  if (links.zoneVilleIds && links.zoneVilleIds.length) b.relation("Zone de Chalandise", links.zoneVilleIds);
 
-  return createPage(ds, b.build());
+  return createPageTemplated(ds, cfg.templates.magasins, b.build());
 }

@@ -6,6 +6,7 @@ import type { VercelRequest, VercelResponse } from "../src/util/vercel.js";
 import { getMessage } from "../src/graph/messages.js";
 import { processMail } from "../src/pipeline.js";
 import { cronSecret } from "../src/config.js";
+import { serializeError } from "../src/log.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const secret = cronSecret();
@@ -24,6 +25,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const outcome = await processMail(mail);
     res.status(200).json({ ok: true, outcome });
   } catch (err) {
-    res.status(500).json({ ok: false, error: String(err) });
+    res.status(500).json({ ok: false, error: serializeError(err) });
   }
 }

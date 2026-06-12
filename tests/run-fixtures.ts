@@ -11,6 +11,7 @@
 import { loadFixtures, type FixtureCase } from "./fixtures/loader.js";
 import { compareClassification, compareExtraction, type Check } from "./fixtures/compare.js";
 import { routeExtraction } from "../src/extract/router.js";
+import { serializeError } from "../src/log.js";
 
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
@@ -88,7 +89,7 @@ async function main(): Promise<void> {
       allOk = allOk && ok;
     } catch (err) {
       allOk = false;
-      console.log(`   ${RED}💥 erreur : ${String(err)}${RESET}`);
+      console.log(`   ${RED}💥 erreur : ${serializeError(err)}${RESET}`);
     }
   }
 

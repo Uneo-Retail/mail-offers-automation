@@ -97,6 +97,35 @@ export async function updatePage(
   await notion().pages.update({ page_id: pageId, properties: properties as never });
 }
 
+/**
+ * Crée une page en appliquant (conceptuellement) le template par défaut de la base,
+ * PUIS écrit nos propriétés — nos valeurs gagnent TOUJOURS (LOT 1).
+ *
+ * ⚠️ Réalité de l'API : l'API REST Notion (SDK 2.3) ne permet PAS de créer une page
+ * depuis un template (fonctionnalité UI uniquement) — aucun paramètre `template_id`
+ * à la création. On applique donc le fallback documenté du brief : créer la page
+ * puis PATCHer nos propriétés. La page naît « vide » (un template UI se peuplerait
+ * de façon asynchrone) ; notre PATCH écrase toute valeur éventuellement posée.
+ * `templateId` est conservé en signature pour activer le vrai flux le jour où l'API
+ * le supporte, sans toucher aux appelants.
+ */
+export async function createPageTemplated(
+  dataSourceId: string,
+  templateId: string,
+  properties: Record<string, unknown>,
+  deps: {
+    create?: (ds: string, props: Record<string, unknown>) => Promise<string>;
+    update?: (id: string, props: Record<string, unknown>) => Promise<void>;
+  } = {}
+): Promise<string> {
+  void templateId; // non transmis : l'API REST ne l'accepte pas (cf. ci-dessus)
+  const create = deps.create ?? createPage;
+  const update = deps.update ?? updatePage;
+  const id = await create(dataSourceId, {}); // page « vide » (template appliqué côté UI)
+  await update(id, properties); // PATCH : nos valeurs gagnent toujours
+  return id;
+}
+
 export function pageUrl(pageId: string): string {
   return `https://www.notion.so/${pageId.replace(/-/g, "")}`;
 }

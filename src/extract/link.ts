@@ -3,7 +3,7 @@
  * lien, pas de PJ) → fetch de la page + extraction texte.
  */
 import { htmlToText } from "./html.js";
-import { log } from "../log.js";
+import { log, serializeError } from "../log.js";
 
 const FETCH_TIMEOUT_MS = 15_000;
 const MAX_BYTES = 4_000_000;
@@ -43,7 +43,7 @@ export async function fetchLinkText(url: string): Promise<string | null> {
     const { text } = htmlToText(html);
     return text.slice(0, 20_000);
   } catch (err) {
-    log.warn("fetchLinkText: échec", { url, err: String(err) });
+    log.warn("fetchLinkText: échec", { url, err: serializeError(err) });
     return null;
   } finally {
     clearTimeout(timer);

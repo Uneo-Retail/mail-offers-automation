@@ -10,7 +10,7 @@
 import type { Extraction } from "../ai/schemas.js";
 import { findContact, createContact } from "./contacts.js";
 import { resolveBroker } from "./brokers.js";
-import { log } from "../log.js";
+import { log, serializeError } from "../log.js";
 
 export interface ResolvedBroker {
   brokerId: string | null;
@@ -43,7 +43,7 @@ export async function resolveContactAndBroker(broker: Extraction["broker"]): Pro
       brokerId = match.brokerIds[0] ?? null;
     }
   } catch (err) {
-    log.warn("resolve: findContact a échoué", { err: String(err) });
+    log.warn("resolve: findContact a échoué", { err: serializeError(err) });
   }
 
   // 2. broker (société)
@@ -51,7 +51,7 @@ export async function resolveContactAndBroker(broker: Extraction["broker"]): Pro
     try {
       brokerId = await resolveBroker(societe);
     } catch (err) {
-      log.warn("resolve: resolveBroker a échoué", { err: String(err) });
+      log.warn("resolve: resolveBroker a échoué", { err: serializeError(err) });
     }
   }
 
@@ -60,7 +60,7 @@ export async function resolveContactAndBroker(broker: Extraction["broker"]): Pro
     try {
       contactId = await createContact(broker.contact, brokerId ?? undefined);
     } catch (err) {
-      log.warn("resolve: createContact a échoué", { err: String(err) });
+      log.warn("resolve: createContact a échoué", { err: serializeError(err) });
     }
   }
 

@@ -15,7 +15,7 @@ import { getDeltaLink, setDeltaLink, isPrimed } from "../src/state/supabase.js";
 import { processMail, type Outcome } from "../src/pipeline.js";
 import { selectBatch } from "../src/batch.js";
 import { cronSecret, maxBatch, forceBackfill } from "../src/config.js";
-import { log } from "../src/log.js";
+import { log, serializeError } from "../src/log.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const secret = cronSecret();
@@ -53,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         counts[outcome]++;
       } catch (err) {
         counts.failed++;
-        log.error("poll: échec traitement message", { id, err: String(err) });
+        log.error("poll: échec traitement message", { id, err: serializeError(err) });
       }
     }
 
@@ -63,7 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     res.status(200).json({ ok: true, processed: batch.length, total, truncated, counts });
   } catch (err) {
-    log.error("poll: erreur globale", { err: String(err) });
-    res.status(500).json({ ok: false, error: String(err), counts });
+    log.error("poll: erreur globale", { err: serializeError(err) });
+    res.status(500).json({ ok: false, error: serializeError(err), counts });
   }
 }

@@ -50,6 +50,13 @@ export interface NotionConfig {
     brokers: string;
     contacts: string;
     villes: string;
+    pays: string;
+  };
+  /** template_id par base (appliqués à la création, cf. LOT 1). */
+  templates: {
+    magasins: string;
+    offres: string;
+    brokers: string;
   };
 }
 
@@ -88,7 +95,14 @@ export const notionConfig = (): NotionConfig => ({
     emplacements: req("NOTION_DS_EMPLACEMENTS"),
     brokers: req("NOTION_DS_BROKERS"),
     contacts: req("NOTION_DS_CONTACTS"),
-    villes: opt("NOTION_DS_VILLES"),
+    // Base Villes utilisée pour le matching ville + zone de chalandise (LOT 3/5).
+    villes: opt("NOTION_DS_VILLES", "29a545f7-7d1b-808a-a4f6-d527c4ea474d"),
+    pays: opt("NOTION_DS_PAYS", "29b545f7-7d1b-8092-bc15-c23e1455b830"),
+  },
+  templates: {
+    magasins: opt("NOTION_TPL_MAGASINS", "29b545f7-7d1b-805f-ab1e-e71d36a1e63a"),
+    offres: opt("NOTION_TPL_OFFRES", "29c545f7-7d1b-800f-b631-fc6ebcf652ff"),
+    brokers: opt("NOTION_TPL_BROKERS", "29c545f7-7d1b-8015-bfe2-e104dd011992"),
   },
 });
 

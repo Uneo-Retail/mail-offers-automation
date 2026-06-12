@@ -3,7 +3,7 @@
  * Matching par Nom (title) normalisé.
  */
 import { notionConfig } from "../config.js";
-import { getSchema, queryDataSource, createPage } from "./client.js";
+import { getSchema, queryDataSource, createPageTemplated } from "./client.js";
 import { PropsBuilder } from "./propsMap.js";
 import { normalizeKey } from "../util/normalize.js";
 
@@ -18,7 +18,8 @@ function readTitle(page: { properties: Record<string, unknown> }, name: string):
 
 export async function resolveBroker(societe: string | null | undefined): Promise<string | null> {
   if (!societe || !societe.trim()) return null;
-  const ds = notionConfig().ds.brokers;
+  const cfg = notionConfig();
+  const ds = cfg.ds.brokers;
   const schema = await getSchema(ds);
   const titleName = titlePropName(schema);
 
@@ -32,5 +33,5 @@ export async function resolveBroker(societe: string | null | undefined): Promise
     if (normalizeKey(readTitle(page, titleName)) === want) return page.id;
   }
 
-  return createPage(ds, new PropsBuilder(schema).title(titleName, societe.trim()).build());
+  return createPageTemplated(ds, cfg.templates.brokers, new PropsBuilder(schema).title(titleName, societe.trim()).build());
 }

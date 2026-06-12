@@ -45,6 +45,36 @@ Le plan Vercel gratuit n'autorise qu'**un cron par jour** — insuffisant pour p
 - **Déclenchement manuel** possible via l'onglet *Actions → Run workflow* (utile pour l'amorçage delta et les tests).
 - **Repasser au cron natif Vercel** (`*/10`) le jour d'un upgrade Pro : réintroduire le bloc `crons` dans `vercel.json`, remonter `maxDuration` à `300`, et désactiver/supprimer ce workflow.
 
+## Console admin (frontend de supervision)
+
+Une console web (Next.js, App Router) supervise les mails traités : liste filtrable, détail (résumé IA, raison d'échec, lien Notion) et **timeline « live »** du traitement en cours.
+
+- **Accès** : `https://<projet>.vercel.app/admin` (la racine `/` redirige vers `/admin`).
+- **Authentification** : Basic Auth via le middleware. À l'invite du navigateur, laisser l'identifiant vide ou quelconque et saisir le mot de passe = variable d'env **`ADMIN_PASSWORD`** (jamais exposée au client).
+- **Pages** : `/admin` (liste : date, sujet, expéditeur, statut, nb locaux, lien Notion ; filtres + recherche ; indicateur « en cours ») ; `/admin/[messageId]` (détail + déroulé des étapes, animé en quasi temps réel).
+- **Bouton « Déclencher un traitement »** : appelle `/api/poll` côté serveur (header `Authorization: Bearer CRON_SECRET` ajouté par la route `/api/admin/trigger` ; le secret reste serveur).
+- **Live** : la timeline est rafraîchie par **polling serveur** (toutes les 2,5 s) via `/api/admin/messages/[id]` — aucune clé Supabase n'est envoyée au navigateur. *Option* : pour du vrai Supabase Realtime côté client, ajouter une **policy SELECT** sur `processing_events` pour le rôle `anon` + utiliser une clé **publishable/anon restreinte** (jamais la `service_role`).
+
+### Données & migrations
+
+Le pipeline écrit un flux d'événements (table **`processing_events`**) lu par la console. Appliquer les SQL de `db/` sur Supabase :
+- `db/processing_events.sql` (table + index + RLS activée sans policy + publication Realtime),
+- `db/processed_messages_add_subject.sql` (colonnes `subject`/`sender`, additives).
+
+L'écriture d'événements est **best-effort** : un échec n'interrompt jamais le pipeline.
+
+### Variables d'environnement ajoutées
+- **`ADMIN_PASSWORD`** — mot de passe d'accès à la console (obligatoire ; sans lui les routes `/admin` renvoient `500`).
+- Réutilise `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (lecture serveur, jamais côté navigateur) et `CRON_SECRET` (bouton de déclenchement).
+
+### Changement de configuration Vercel (front Next + fonctions)
+L'ajout du front modifie le build :
+- `vercel.json` ne contient plus `buildCommand`/`outputDirectory` (qui neutralisaient le build) — Vercel **détecte Next.js** (présence de la dépendance `next`) et lance `next build`. Le bloc `functions` (avec `includeFiles` pdfjs) est conservé pour `api/poll.ts` et `api/process.ts`.
+- Les fonctions serverless **historiques** `api/poll.ts`, `api/health.ts`, `api/process.ts` (au format Vercel Functions, hors `app/`) **coexistent** avec l'app Next et restent déployées telles quelles. À vérifier au premier déploiement : `GET /api/health` et `GET /api/poll` répondent toujours.
+- Deux `tsconfig` : `tsconfig.backend.json` (NodeNext, utilisé par `npm run typecheck` et les fonctions) et `tsconfig.json` (Next, app). `next.config.mjs` ajoute un `extensionAlias` `.js → .ts` pour que le front réutilise les modules backend (`src/**`).
+
+Scripts : `npm run dev` (front local), `npm run build` (`next build`), `npm run typecheck` (backend), `npm run typecheck:web` (app), `npm test` (tests backend).
+
 ### Amorçage delta (important au 1er run)
 
 Le **tout premier** appel à `/api/poll` sur une boîte non amorcée **ne traite aucun mail** : il parcourt le delta jusqu'au `@odata.deltaLink` final et le persiste (réponse `{ "primed": true, "processed": 0 }`). C'est une « ligne de départ maintenant » — sans ça, le premier cron traiterait tout l'historique de l'inbox (coût IA massif + base Notion polluée). Les runs suivants ne traitent que les mails reçus **après** l'amorçage.

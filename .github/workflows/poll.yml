@@ -1,0 +1,32 @@
+# Déclencheur périodique externe de /api/poll (remplace le cron Vercel sur plan gratuit).
+# Toutes les 30 min. Appelle l'endpoint protégé avec le CRON_SECRET en header.
+#
+# PRÉREQUIS (une seule fois) — repo GitHub, Settings → Secrets and variables → Actions :
+#   - POLL_URL    = https://<projet>.vercel.app/api/poll
+#   - CRON_SECRET = (même valeur que la variable CRON_SECRET posée dans Vercel)
+#
+# Déclenchement manuel possible (onglet Actions → Run workflow), utile pour les tests.
+
+name: poll-mail-offers
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /api/poll
+        run: |
+          code=$(curl -sS -o /tmp/body.txt -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.POLL_URL }}")
+          echo "HTTP $code"
+          cat /tmp/body.txt
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            echo "::error::poll a renvoyé $code"
+            exit 1
+          fi

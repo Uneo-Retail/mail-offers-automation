@@ -1,14 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [
-    {
-      "path": "/api/poll",
-      "schedule": "*/10 * * * *"
-    }
-  ],
+  "buildCommand": "echo 'no build step - serverless functions only'",
+  "outputDirectory": ".",
   "functions": {
     "api/poll.ts": {
-      "maxDuration": 300
+      "maxDuration": 60
     }
   }
 }
